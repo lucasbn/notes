@@ -18,5 +18,10 @@ static inline void *xrealloc(void *ptr, size_t size)
 5. If compiling an older version of Linux with pahole v1.24 or above, add the following to `scripts/link-vmlinux.sh`:
 
 ```
-
+if [ "${pahole_ver}" -ge "124" ]; then
+	# see PAHOLE_HAS_LANG_EXCLUDE
+	extra_paholeopt="${extra_paholeopt} --skip_encoding_btf_enum64"
+fi
 ```
+
+It should be fairly obvious where to put this if statement, and if it isn't then either this isn't the problem or you'll have to figure out how to pass the `--skip_encoding_btf_enum64` flag to pahole yourself.
