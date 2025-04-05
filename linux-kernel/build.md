@@ -15,7 +15,9 @@ static inline void *xrealloc(void *ptr, size_t size)
 }
 ```
 
-5. If compiling an older version of Linux with pahole v1.24 or above, add the following to `scripts/link-vmlinux.sh`:
+5. If you see any error like `FAILED: load BTF from vmlinx` and you are compiling an older version of the kernel with pahole v1.24 or above, you'll need to add a flag to the invocation of pahole: 
+
+You may be able to do this in `scripts/link-vmlinux.sh` (depending on the kernel version):
 
 ```
 if [ "${pahole_ver}" -ge "124" ]; then
@@ -24,4 +26,12 @@ if [ "${pahole_ver}" -ge "124" ]; then
 fi
 ```
 
-It should be fairly obvious where to put this if statement, and if it isn't then either this isn't the problem or you'll have to figure out how to pass the `--skip_encoding_btf_enum64` flag to pahole yourself.
+Alternatively, you can add the flag like this:
+
+```
+LLVM_OBJCOPY=${OBJCOPY} ${PAHOLE} -J --skip_encoding_btf_enum64 ${1}
+```
+
+Hopefully it'll be clear where to add this flag (`--skip_encoding_btf_enum64`), but you may need to do some digging/experimenting 
+
+6. To install pahole (if you get a `BTF: .tmp_vmlinux.btf: pahole (pahole) is not available` error) run `sudo apt install dwarves`
