@@ -1,19 +1,120 @@
-1. Ensure you have the right `.config` when compiling the kernel
-	- `make menuconfig`: save and exit
-	- `make kvm_guest.config`
+1. Creating a custom filesystem image
 
-1. Create a file system image:
-
-TODO: Add guide here on how to create your own custom image with lots of things preinstalled
+First, you'll need to install some dependencies:
 
 ```
-mkdir image && cd image
-wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh -O create-image.sh
-chmod +x create-image.sh
-./create-image.sh
+sudo apt update
+sudo apt install debootstrap qemu-user-static binfmt-support systemd-container=
 ```
 
-2. Create a `run.sh` script:
+Create a directory to house the filesystem:
+
+```
+mkdir -p rootfs-arm64
+```
+
+Use `debootstrap` to create a minimal Ubuntu filesystem:
+
+```
+sudo debootstrap --arch=arm64 --foreign jammy ~/rootfs-arm64 http://ports.ubuntu.com
+```
+
+Copy the `qemu-aarch64-static` binary to the rootfs so that we can run ARM64
+binaries when we chroot into it:
+
+```
+sudo cp /usr/bin/qemu-aarch64-static ~/rootfs-arm64/usr/bin/
+```
+
+Now chroot into the filesystem directory:
+
+```
+sudo chroot ~/rootfs-arm64 /usr/bin/qemu-aarch64-static /bin/bash
+```
+
+Run `debootstrap`:
+
+```
+/debootstrap/debootstrap --second-stage
+```
+
+Configure the hostname and root password:
+
+```
+echo "ubuntu-qemu" > /etc/hostname
+echo "root:root" | chpasswd
+```
+
+Install whichever packages you'd like:
+
+```
+apt update
+apt install openssh-server sudo net-tools iproute2 systemd vim curl wget python3 golang -y
+```
+
+Enable SSH root login:
+
+```
+sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+```
+
+To exit the chroot, just type:
+
+```
+exit
+```
+
+Now create an empty disk image with however much space you'd like (e.g 2GB) and
+format it as ext4:
+
+```
+dd if=/dev/zero of=rootfs.ext4 bs=1M count=2048
+mkfs.ext4 rootfs.ext4
+```
+
+Mount the image, copy the root filesystem into it and then unmount it:
+
+```
+mkdir /mnt/tmpmnt
+sudo mount -o loop rootfs.ext4 /mnt/tmpmnt
+sudo cp -a ~/rootfs-arm64/* /mnt/tmpmnt/
+sudo umount /mnt/tmpmnt
+```
+
+The `rootfs.ext4` image can now be used by qemu (see below).
+
+
+2. Setting up the networking in QEMU
+
+You can add the QEMU machine to your host network by running the following
+script:
+
+```
+# Replace this with the identifier of you main network interface
+main_interface=ens160
+
+# Replace this with the current IP address of you main interface
+ip_address=192.168.228.138
+
+# Run `ip route` and replace this with your current default gateway
+default_gateway=192.168.228.2
+
+ip tuntap add dev tap0 mode tap user $USER
+ip link set tap0 up
+
+ip link add name br0 type bridge
+ip link set br0 up
+
+ip link set $main_interface master br0
+ip link set tap0 master br0
+
+ip addr flush dev $main_interface
+ip addr add $ip_address/24 dev br0
+ip link set br0 up
+ip route add default via $default_gateway
+```
+
+3. Create a `run.sh` script:
 
 ```
 qemu-system-aarch64 \
@@ -27,22 +128,4 @@ qemu-system-aarch64 \
   -nographic \
   -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
   -device virtio-net-pci,netdev=net0
-```
-
-And a `setup-network.sh` script (change interface + gateway + ip accordingly):
-
-```
-ip tuntap add dev tap0 mode tap user $USER
-ip link set tap0 up
-
-ip link add name br0 type bridge
-ip link set br0 up
-
-ip link set ens160 master br0
-ip link set tap0 master br0
-
-ip addr flush dev ens160
-ip addr add 192.168.228.138/24 dev br0
-ip link set br0 up
-ip route add default via 192.168.228.2
 ```
