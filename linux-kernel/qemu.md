@@ -49,7 +49,10 @@ Install whichever packages you'd like:
 
 ```
 apt update
-apt install openssh-server sudo net-tools iproute2 systemd vim curl wget python3 golang -y
+apt install openssh-server sudo net-tools iproute2 systemd vim curl wget python3 golang git build-essential clang software-properties-common -y
+add-apt-repository universe
+apt update
+apt install clang
 ```
 
 Enable SSH root login:
