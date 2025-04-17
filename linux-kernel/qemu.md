@@ -132,3 +132,27 @@ qemu-system-aarch64 \
   -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
   -device virtio-net-pci,netdev=net0
 ```
+
+```
+#!/bin/bash
+
+# Check for --gdb flag
+EXTRA_QEMU_ARGS=""
+if [[ "$1" == "--gdb" ]]; then
+    EXTRA_QEMU_ARGS="-s -S"
+fi
+
+qemu-system-x86_64 \
+	-m 2G \
+	-smp 2 \
+	$EXTRA_QEMU_ARGS \
+	-kernel arch/x86/boot/bzImage \
+        -append "console=ttyS0 root=/dev/sda rw earlyprintk=serial net.ifnames=0 nokaslr" \
+        -drive file=image/rootfs.ext4,format=raw \
+  	-netdev user,id=net0,hostfwd=tcp::2222-:22 \
+  	-device virtio-net-pci,netdev=net0 \
+	-nographic \
+	-enable-kvm \
+        -pidfile vm.pid \
+        2>&1 | tee vm.log
+```
