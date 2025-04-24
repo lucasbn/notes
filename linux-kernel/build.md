@@ -1,5 +1,7 @@
 1. `make menuconfig`: just save and exit
 2. `make -j$(nproc)`: if this finishes quickly, it may have failed and output may be higher up
+	- `KBUILD_BUILD_TIMESTAMP='' make "CC=ccache gcc" -j$(nproc)` massively speeds up build
+		times with caching
 3. `No rule to make target 'debian/canonical-certs.pem` can be fixed by running:
 	- `scripts/config --disable SYSTEM_TRUSTED_KEYS`
 	- `scripts/config --disable SYSTEM_REVOCATION_KEYS`
