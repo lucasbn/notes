@@ -156,3 +156,21 @@ qemu-system-x86_64 \
         -pidfile vm.pid \
         2>&1 | tee vm.log
 ```
+
+
+4. When the kernel loads:
+
+```
+systemctl enable systemd-networkd
+systemctl start systemd-networkd
+mkdir -p /etc/systemd/network
+cat <<EOF > /etc/systemd/network/20-eth0.network
+[Match]
+Name=eth0
+
+[Network]
+DHCP=yes
+EOF
+```
+
+Then reboot and the `ip addr` should show that eth0 is up and has an address
