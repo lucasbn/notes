@@ -37,3 +37,13 @@ LLVM_OBJCOPY=${OBJCOPY} ${PAHOLE} -J --skip_encoding_btf_enum64 ${1}
 Hopefully it'll be clear where to add this flag (`--skip_encoding_btf_enum64`), but you may need to do some digging/experimenting 
 
 6. To install pahole (if you get a `BTF: .tmp_vmlinux.btf: pahole (pahole) is not available` error) run `sudo apt install dwarves`
+
+7. To install modules:
+
+```
+sudo make modules_install INSTALL_MOD_PATH=modules
+sudo mount image/rootfs.ext4 /mnt/tmpmnt
+sudo cp -a modules/lib/modules /mnt/tmpmnt/lib/
+
+```
+
